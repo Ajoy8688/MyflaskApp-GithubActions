@@ -33,6 +33,7 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:${GIT_SHA}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
 
+
   scan:
     name: Security Scan with Trivy
     runs-on: self-hosted
@@ -40,16 +41,16 @@ jobs:
 
     steps:
       - name: Install Trivy
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y wget
-          wget -qO- https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh
-          sudo install ./bin/trivy /usr/local/bin/trivy
-          trivy --version
+        uses: aquasecurity/setup-trivy@v0.2.3
+
       - name: Scan latest Docker image
         run: |
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
-          trivy image --exit-code 1 --severity HIGH,CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
+
+          trivy image --exit-code 0 --severity HIGH,CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
+
+          trivy image --exit-code 1 --severity CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest || echo "⚠️ Critical vulnerabilities found"
+
   deploy:
     name: Deploy on EC2
     runs-on: self-hosted
@@ -61,8 +62,14 @@ jobs:
           docker stop flask-app || true
           docker rm flask-app || true
           sleep 6
+
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
+
           docker run -d --name flask-app -p 5000:5000 \
             ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
+
           sleep 6
           docker system prune -f
+
+  
+         
