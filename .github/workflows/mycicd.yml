@@ -44,12 +44,12 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y wget
           wget -qO- https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh
-
+          sudo install ./bin/trivy /usr/local/bin/trivy
+          trivy --version
       - name: Scan latest Docker image
         run: |
-          trivy image --exit-code 0 --severity HIGH,CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
-          trivy image --exit-code 1 --severity CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest || echo "⚠️ Critical vulnerabilities found"
-
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
+          trivy image --exit-code 1 --severity HIGH,CRITICAL ${{ secrets.DOCKERHUB_USERNAME }}/flask-app:latest
   deploy:
     name: Deploy on EC2
     runs-on: self-hosted
